@@ -49,6 +49,30 @@ A customer managed KMS key addresses several threats that the default encryption
 
 ## Q8. For each of the three simulator results, name the Principal, Action, Resource and Request context, and say which statement decided it
 
+Test 1
+
+- Principal: arn:aws:iam::337820988322:role/nimbus/nimbus-onboarding-svc
+- Action: iam:AttachUserPolicy
+- Resource: arn:aws:iam::337820988322:user/nimbus/alice
+- Request Context: iam:PolicyARN = arn:aws:iam::aws:policy/AdministratorAccess
+- Statement that decided it: AttachOnlyTheMFAGuardPolicy from policies/svc-onboarding.json
+
+Test 2
+
+- Principal: arn:aws:iam::337820988322:role/nimbus/nimbus-onboarding-svc
+- Action: iam:AttachUserPolicy
+- Resource: arn:aws:iam::337820988322:user/nimbus/alice
+- Request Context: iam:PolicyARN = arn:aws:iam::337820988322:policy/nimbus/Nimbus-RequireMFA
+- Statement that decided it: AttachOnlyTheMFAGuardPolicy from policies/svc-onboarding.json
+  
+Test 3
+
+- Principal: arn:aws:iam::337820988322:role/nimbus/nimbus-onboarding-svc
+- Action: iam:CreateLoginProfile
+- Resource: arn:aws:iam::337820988322:user/labuser
+- Request Context: iam:PolicyARN = arn:aws:iam::aws:policy/AdministratorAccess
+- Statement that decided it: CreateAndTagNimbusUsersOnly from policies/svc-onboarding.json
+
 ## Q9 (explore). Four containers, one host
 
 All four containers share one instance, so a compromised container could assume any service role. Explain how the hop limit of 2 and the instance role make that possible. Then compare three redesigns (one instance per service, container task roles on Amazon ECS, and pod level identity on Kubernetes) on isolation, cost and operational effort.
