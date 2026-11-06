@@ -93,7 +93,9 @@ The two EventBridge rules cover a short list of events. Name two attacker action
 
 Two actions that an attacker could take that these rules would miss are creating new IAM roles or users and creating a login profile for existing IAM users that only have programatic access.
 
-Event pattern to catch creation of IAM roles and users
+### Event pattern to catch creation of IAM roles and users
+
+```json
 
 {
   "source": ["aws.iam"],
@@ -107,4 +109,22 @@ Event pattern to catch creation of IAM roles and users
   }
 }
 
+```
+
 Alert fatigue is a problem that occurs when there are too many unimportant or false alerts being triggered in a system. When this happens IT personnel tend to start ignoring alerts. This is a major issue because it causes situations where a critical alert is ignored due to the mistaken belief that it is simply another false alarm. Managed services such as Amazon GuardDuty help mitigate alert fatigue because they aggregate and categorize alerts from various sources. These alerts are automatically sorted and prioritized with the help of AI to help ensure that administrators are able to see the most important alerts.
+
+## Q12. Why is there no SSH and no key pair, and how do you debug the server without them?
+
+There is no SSH enabled, nor is there a key pair in this lab because these are all potential vulnerabilities in a system. This app is just a few simple microservices. There isn't really any reason why a user would need to login to this particular system because it is simple and can be readily redeployed in just a few minutes. Enabling SSH would only provide an additional attack vector, so it remains disabled. The server can be debugged by running aws ec2 get-console-output "instance-id". This grabs the console output from the server and allows an administrator to debug issues. I used this method in the lab to debug being unable to access the dashboard. Based on console output I determined that I accidentally used the wrong url when cloning the repository with 05-launch-ec2.sh. Because of this the app never deployed, so there was no dashboard to access. I was then able to destroy all resources and redeploy without needing to SSH into the server.
+
+## Q13. If the web container were compromised, what does egress filtering stop and what does it not stop?
+
+If the web container was compromised than egress filtering would stop all traffic except for http and https. This means that an attacker would not be able to use other protocols like SSH to move laterally to other systems. It would not stop traffic that used http or https, so the attacker could still try to access other websites/portals, or they could possibly try to download some malicious code onto the server via curl or some other command.
+
+## Q14 (explore). Certificates and trust on first use
+
+The console uses a self signed certificate and you compared its fingerprint by hand. Explain the attack this comparison defends against and why most users skip it. Compare this with a certificate from AWS Certificate Manager behind a load balancer, and with a public certificate authority. What do HSTS and certificate transparency add?
+
+## Q14 Answer
+
+Comparing the certificate by hand helps defend against man in the middle attacks. Since the certificate is self signed an attacker can simply generate their own and try to trick a user into entering sensitive data on a website that they control instead of the real site. Comparing the certificate protects against this because it allows me to make sure that I am connecting to the correct system. Most users skip verifying the certificate because it is tedious and they simply do not want to do it. Certificates from AWS Certificate Manager and with public certificate authorities are typically trusted by the browser, so a user does not have to verify it manually. HSTS adds an additional layer of security by preventing browsers from ever loading a resource over http. This prevents ssl stripping attacks. Certificate transparancy helps protect against scenarios where a valid/legit certificate was assigned to a malicious site by mistake. It essentially just adds another check/safety measure to certificates.
