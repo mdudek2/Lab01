@@ -83,4 +83,28 @@ The hop limit of 2 allow the credentials to reach the container that made the re
 
 ## Q10. Which two kinds of event does the lab alert on, and why alert on them instead of only storing them?
 
-The two kinds of events that this lab alerts on are risky changes to IAM and a console sign in without multi factor authentication. It is important to alert on thes as opposed to only storing them because these are potentially dangerous events. A dangerous IAM change is a sign that someone has breached the system. Alerting on this enables a quick response and helps identify and stop the breach. Alerting on a login without MFA allows for detecting a vulnerable/compromised account so that it can be disabled before it causes any harm.
+The two kinds of events that this lab alerts on are risky changes to IAM and a console sign in without multi factor authentication. It is important to alert on these as opposed to only storing them because these are potentially dangerous events. A dangerous IAM change is a sign that someone has breached the system. Alerting on this enables a quick response and helps identify and stop the breach. Alerting on a login without MFA allows for detecting a vulnerable/compromised account so that it can be disabled before it causes any harm.
+
+## Q11 (explore). Blind spots in detection
+
+The two EventBridge rules cover a short list of events. Name two attacker actions against IAM that these rules would miss (for example creating a login profile for an existing user, or using stolen credentials from an unusual location). Write the event pattern for one of them, and discuss alert fatigue and how a managed service such as Amazon GuardDuty approaches the same problem.
+
+## Q11 Answer
+
+Two actions that an attacker could take that these rules would miss are creating new IAM roles or users and creating a login profile for existing IAM users that only have programatic access.
+
+Event pattern to catch creation of IAM roles and users
+
+{
+  "source": ["aws.iam"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["iam.amazonaws.com"],
+    "eventName": [
+      "CreateUser",
+      "CreateRole"
+    ]
+  }
+}
+
+Alert fatigue is a problem that occurs when there are too many unimportant or false alerts being triggered in a system. When this happens IT personnel tend to start ignoring alerts. This is a major issue because it causes situations where a critical alert is ignored due to the mistaken belief that it is simply another false alarm. Managed services such as Amazon GuardDuty help mitigate alert fatigue because they aggregate and categorize alerts from various sources. These alerts are automatically sorted and prioritized with the help of AI to help ensure that administrators are able to see the most important alerts.
