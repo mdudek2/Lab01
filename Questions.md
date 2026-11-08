@@ -133,3 +133,38 @@ Comparing the certificate by hand helps defend against man in the middle attacks
 
 The first two checks proved that the application uses encryption in transit because http was rejected and the application uses secure headers. The third checked proved a smaller attack surface because ssh and port 8080 were closed and only 8443 was accepting traffic. The fourth test proved that there was protection against password guessing because there was a lockout after multiple incorrect passwords were tried.
 
+## Q16. Why does the same user and action get denied without MFA and allowed with it? Quote the condition key.
+
+The same user and action get denied without MFA and allowed with it because we attached a policy called Nimbus-RequireMFA to each nimbus user when they were created. This effectively forces MFA, so when we simulated an action without MFA we recieved an "explicit deny" and when the same action was simulated with MFA we get "allowed". The condition key for our policy is "aws:MultiFactorAuthPresent" and it's value is set to false. Basically, the polcy will Deny actions if there is no MFA present.
+
+The condition key for the policy is shown below
+
+```json
+{
+            "Sid": "DenyEverythingExceptMFASetupWhenNoMFA",
+            "Effect": "Deny",
+            "NotAction": [ ... ],
+            "Resource": "*",
+            "Condition": {
+                "BoolIfExists": {
+                    "aws:MultiFactorAuthPresent": "false"
+                }
+            }
+        }
+```
+
+## Q17. Who created mallory and how did you find out? Why does the audit trail in S3 not show it?
+
+My IAM user "labuser" that I am using for this project created mallory. I found out by running the 08-investigate.sh" script and looking at the cloudtrail results. The audit trail in S3 doesn't show it because the user was not created through the dashboard/application and was created directly through aws cli.
+
+## Q18 (explore). Replacing IAM users with single sign on
+
+Suppose the company adopts AWS IAM Identity Center with an external identity provider. Which parts of this lab become unnecessary, which still matter (for example the MFA guard, the kill switch and drift detection), and what new risks appear, such as a compromised identity provider?
+
+## Q18 Answer
+
+If the company were to adopt AWS IAM Identity Center with an external identity provider then the nimbus dashboard will no longer be necessary since we would be managing identities with another provider. The dashboard for this project basically just handles onboarding and offboarding for aws users. If we had an external identity provider it would be unnecessary. The security policies that we use to enforce MFA and default deny access without it would need to remain in order to ensure best practices. The alerts would also need to stay for the same reason. Drift detection and the killswitch would also need to remain in order to make sure that users that are offboarded do not maintain access. There are a couple of risks with using an external provider, but the main one would be the fact that we would be relying on a third party that could be compromised. We can secure our own code and our own identity management applications but we have no control over how secure the third party provider is.
+
+## Q19 Why is a token rotation safe with no restart, and what would break if the services accepted only the current token?
+
+A token rotation is safe with no restart because we are managing our secrets/tokens via AWS. Nothing is stored locally in the application because it is designed to dynamically retrieve the secret from secrets manager. The actual value of the secret doesn't matter it simply needs to be valid according to AWS. AWS cryptographically validates it's tokens and supports seamlessly transitioning/rotating them so that nothing fails due to a new token. Services need to accept the previous token temporarily so that they do not fail every time a token or secret is rotated. This is one of the benefits of using AWS secrets manager. If the services only accepted the current token then any application that relied on a token or a secret like a database, or something that needed s3 access would effectively stop functioning unless it was restarted with the new secret value.
