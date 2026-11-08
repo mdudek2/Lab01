@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # LOGGING and ALERTING (all free tier): one CloudTrail trail (first copy of management events is free),
 # plus EventBridge rules that email you through SNS when risky IAM calls or password-only sign-ins happen.
-# Usage: ALERT_EMAIL=you@example.com ./04-detection.sh
+ALERT_EMAIL=mdudek2@hawk.illinoistech.edu 
 source "$(dirname "$0")/env.sh"
 ALERT_EMAIL="${ALERT_EMAIL:?set ALERT_EMAIL=mdudek2@hawk.illinoistech.edu (alerts are emailed there)}"
 

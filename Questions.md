@@ -128,3 +128,5 @@ The console uses a self signed certificate and you compared its fingerprint by h
 ## Q14 Answer
 
 Comparing the certificate by hand helps defend against man in the middle attacks. Since the certificate is self signed an attacker can simply generate their own and try to trick a user into entering sensitive data on a website that they control instead of the real site. Comparing the certificate protects against this because it allows me to make sure that I am connecting to the correct system. Most users skip verifying the certificate because it is tedious and they simply do not want to do it. Certificates from AWS Certificate Manager and with public certificate authorities are typically trusted by the browser, so a user does not have to verify it manually. HSTS adds an additional layer of security by preventing browsers from ever loading a resource over http. This prevents ssl stripping attacks. Certificate transparancy helps protect against scenarios where a valid/legit certificate was assigned to a malicious site by mistake. It essentially just adds another check/safety measure to certificates.
+
+## Q15
