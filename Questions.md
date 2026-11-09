@@ -133,7 +133,7 @@ Comparing the certificate by hand helps defend against man in the middle attacks
 
 The first two checks proved that the application uses encryption in transit because http was rejected and the application uses secure headers. The third checked proved a smaller attack surface because ssh and port 8080 were closed and only 8443 was accepting traffic. The fourth test proved that there was protection against password guessing because there was a lockout after multiple incorrect passwords were tried.
 
-## Q16. Why does the same user and action get denied without MFA and allowed with it? Quote the condition key.
+## Q16. Why does the same user and action get denied without MFA and allowed with it? Quote the condition key
 
 The same user and action get denied without MFA and allowed with it because we attached a policy called Nimbus-RequireMFA to each nimbus user when they were created. This effectively forces MFA, so when we simulated an action without MFA we recieved an "explicit deny" and when the same action was simulated with MFA we get "allowed". The condition key for our policy is "aws:MultiFactorAuthPresent" and it's value is set to false. Basically, the polcy will Deny actions if there is no MFA present.
 
@@ -168,3 +168,174 @@ If the company were to adopt AWS IAM Identity Center with an external identity p
 ## Q19 Why is a token rotation safe with no restart, and what would break if the services accepted only the current token?
 
 A token rotation is safe with no restart because we are managing our secrets/tokens via AWS. Nothing is stored locally in the application because it is designed to dynamically retrieve the secret from secrets manager. The actual value of the secret doesn't matter it simply needs to be valid according to AWS. AWS cryptographically validates it's tokens and supports seamlessly transitioning/rotating them so that nothing fails due to a new token. Services need to accept the previous token temporarily so that they do not fail every time a token or secret is rotated. This is one of the benefits of using AWS secrets manager. If the services only accepted the current token then any application that relied on a token or a secret like a database, or something that needed s3 access would effectively stop functioning unless it was restarted with the new secret value.
+
+## Q20. Which control would have prevented the incident, and which only limited it? Name one more free control you would add
+
+For this scenario enforcing least privelages for IAM accounts would have completely mitigated the scenario. My lab user has a lot of permissions that it doesn't really need to have. This is what allowed it to create an access key for James. In a perfect world the lab user would have been configured to only have the permissions needed to deploy the infrastructure for the lab. Another potential control I could implement to reduce the impact of an incident like this is to make use of temporary credentials. This could limit the usefulness of any compromised keys because they would automatically become invalid after some time. I would add a control on the following action for the labuser: iam:CreateAccessKey. This would limit it's ability to create keys for other accounts.
+
+## Q21 (explore). Mapping the drill to a framework
+
+Map the steps of the G6 incident drill to techniques in the MITRE ATT&CK Cloud Matrix (for example persistence through additional cloud credentials). Then map three controls from this lab to a published control set such as the CIS AWS Foundations Benchmark or NIST SP800-53, and identify one requirement in that set which this lab does not meet.
+
+## Q21 Answer
+
+### Incident Drill Steps and Mapping
+
+- Attacker gained access to labuser account: Mapped to Valid Accounts: Cloud Accounts. Initial Access.
+- Attacker used the labuser account to create an access key for the legitimate james user: Mapped to Account Manipulation: Additional Cloud Credentials. Persistence.
+- Alert for Risky IAM was received: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+- Investigation script was run and the malicious key was discovered: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+- The compromised James account was offboarded: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+- The malicious backdoor key was deleted: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+- A new replacement account was created for James: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+- Network access logs were reviewed: Mapped to nothing (MITRE ATT&CK Cloud Matrix focuses on attacker techniqes not defensive actions)
+
+### Control Mappings
+
+Selected Framework: AWS Foundational Security Best Practices (FSBP)
+
+Selected Controls
+
+- Nimbus Deny All
+- Nimbus Require MFA
+- BusinessTeamReadOnly
+
+| FSBP Control | Requirement | Relevant Control/Policy |
+| --- | --- | --- |
+| **IAM.1** | IAM policies should not allow full administrative privileges (*) | Nimbus Deny All; BusinessTeamReadOnly |
+| **IAM.2** | IAM users should not have IAM policies attached | All three compliant |
+| **IAM.3** | IAM access keys should be rotated within 90 days | Not Shown |
+| **IAM.5** | MFA enabled for IAM users with console passwords | Nimbus Require MFA |
+| **IAM.7** | IAM password policies should have strong configurations | Nimbus Require MFA |
+| **IAM.8** | Unused IAM user credentials should be removed | Not Shown |
+| **IAM.9** | MFA enabled for the root user | Not Shown |
+| **IAM.19** | MFA enabled for all IAM users | Nimbus Require MFA |
+| **IAM.21** | Customer-managed policies should not allow wildcard service actions | BusinessTeamReadOnly |
+
+### Unmet Requirement: IAM.7: IAM password policies should have strong configurations
+
+The password policy in this lab does not really enforce strong passwords. It does enforce multifactor authentication but users are still free to set basically whatever password that they want after they login initially. A stronger password policy should be fefined for this lab that requires a specific length, complexity, and these passwords should also be rotated periodically.
+
+## Q22. Complete the table in your own words: which limit do you hit first in each row, and what do you change?
+
+Here is the completion for **Q22**, breaking down the first limit hit and the required changes for each concern as you scale beyond 100 users:
+
+| Concern | First Limit Hit | What to Change |
+| --- | --- | --- |
+| **Permissions** | IAM user group limits or account user ceilings. | Switch from manually controlled IAM identities to a federated identity provider |
+| **Registry (S3)** | S3 API performance and latency bottlenecks when listing thousands of objects on a refresh/reload. | Implement a database to store this information instead of relying exclusively on S3 |
+| **Dashboard** | AWS IAM API rate limits and throttling. | Use IAM Credential Report and/or batched synchronization to mitigate API limits. |
+| **Service Identity** | Container compromise (all containers are on the same host, so if one gets compromised then all of them are compromised | Use seperate EC2 instances for each service or implement ECS tasks. |
+| **Sign In** | A large organization has multiple administrators, so there should be multiple admin accounts instead of a shared one | Use SSO to avoid making IAM users manually, and stop sharing one admin account. |
+| **Logging** | CloudTrail stortage and retention limits might be an issue with a large organization | Send logs to a seperate logging account and implement a SIEM system to help manage analyze events. |
+
+## Q23 (explore). Controls that even an administrator cannot remove
+
+At company scale you add guardrails above the account. Choose three controls from this lab (for example the trail, the Deny All policy, Block PublicAccess) and write the Service Control Policy that would protect each one in an AWS Organization. What does
+an SCP not protect against, and why is the management account treated differently?
+
+## Q23 Answer
+
+### Offboard SCP
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OffboardedAccountKillSwitch",
+      "Effect": "Deny",
+      "NotAction": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Data Bucket Policy SCP
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EnforceTLSRequestsOnly",
+      "Effect": "Deny",
+      "Action": "s3:*",
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    },
+    {
+      "Sid": "EnforceMinimumTLSVersion",
+      "Effect": "Deny",
+      "Action": "s3:*",
+      "Resource": "*",
+      "Condition": {
+        "NumericLessThan": {
+          "s3:TlsVersion": "1.2"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Security Team Guardrails SCP
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProtectCoreSecurityResources",
+      "Effect": "Deny",
+      "Action": [
+        "iam:DeleteRole",
+        "iam:DeleteRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:StopLogging",
+        "guardduty:DeleteDetector"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnNotEquals": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::*:role/YourSecurityAdminRoleName"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+### What an SCP doesn't protect against
+
+An SCP can limit the permissions that IAM users and roles have, but it cannot protect against the management account being compromised because SCP's do not affect the managment account. This is intentional because if a badly written SCP was attached to the management account then it could potentially lock out that account with no easy way of recovery. The management account must be treated differently because there has to be some kind of a failsafe if an administrator makes a mistake. AWS also reccomends alternative methods to securing management accounts such as strong multifactor authentication as well as hardware authentication.
+
+## Q24 (explore). Can you trust the logs?
+
+The cleanup script deletes the trail and the log bucket, but in a real company those logs are evidence. The trail has log file validation on. Explain what the digest files prove and how you would verify them with aws cloudtrail validate-logs. Then describe what an attacker with administrator rights could still do to your evidence in this lab, and how a separate log archive account, S3
+Object Lock and MFA delete would change the answer.
+
+## Q24 Answer
+
+Digest files help prove the validity and integrity of the logs that were generated because they are hashed and chained together. The digest files prove that the logs are legitimate. The aws cloudtrail validate-logs command computes the hashes and verifies all of the signatures. I would use this command to check whether my logs are legitimate. An attacker with admin rights could potentially modify or even delete these logs because they are stored in an s3 bucket, so if the administrative account can modify s3 then the attacker could completely wipe the logs. Seperate logging accounts, s3 object lock, and MFA can help protect against this because they act as addional guardrails to a compromised administrator account. If the logs are in a seperate account then the attacker can't delete them because the compromised admin account doesn't have the permissions to access the logging accounts resources. An object lock can prevent objects in a bucket from being deleted because it overules an accounts permissions when it comes to deleting objects. Multifactor authentication helps defend the logs because it requires an additional form of authentication when logging in. This means that if an attacker has an administrators credentials they still will not be able to login and perfrom any actions. S3 buckets can also be configured to require multifactor authentication when trying to delete data.
+
+Sources
+
+https://attack.mitre.org/matrices/enterprise/cloud/
+
+https://docs.aws.amazon.com/securityhub/latest/userguide/iam-controls.html
+
+https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
+
+https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html
