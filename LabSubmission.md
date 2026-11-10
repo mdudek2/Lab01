@@ -127,7 +127,7 @@ The console uses a self signed certificate and you compared its fingerprint by h
 
 ## Q14 Answer
 
-Comparing the certificate by hand helps defend against man in the middle attacks. Since the certificate is self signed an attacker can simply generate their own and try to trick a user into entering sensitive data on a website that they control instead of the real site. Comparing the certificate protects against this because it allows me to make sure that I am connecting to the correct system. Most users skip verifying the certificate because it is tedious and they simply do not want to do it. Certificates from AWS Certificate Manager and with public certificate authorities are typically trusted by the browser, so a user does not have to verify it manually. HSTS adds an additional layer of security by preventing browsers from ever loading a resource over http. This prevents ssl stripping attacks. Certificate transparancy helps protect against scenarios where a valid/legit certificate was assigned to a malicious site by mistake. It essentially just adds another check/safety measure to certificates.
+Comparing the certificate by hand helps defend against man in the middle attacks. Since the certificate is self signed an attacker can simply generate their own and try to trick a user into entering sensitive data on a website that they control instead of the real site. Comparing the certificate protects against this because it allows me to make sure that I am connecting to the correct system. Most users skip verifying the certificate because it is tedious and they simply do not want to do it. Certificates from AWS Certificate Manager and certificates from public certificate authorities are typically trusted by the browser, so a user does not have to verify it manually. HSTS adds an additional layer of security by preventing browsers from ever loading a resource over http. This prevents ssl stripping attacks. Certificate transparancy helps protect against scenarios where a valid/legit certificate was assigned to a malicious site by mistake. It essentially just adds another check/safety measure to certificates.
 
 ## Q15 Which of the six checks proved encryption in transit, which proved a smaller attack surface, and which proved protection against password guessing?
 
@@ -163,7 +163,7 @@ Suppose the company adopts AWS IAM Identity Center with an external identity pro
 
 ## Q18 Answer
 
-If the company were to adopt AWS IAM Identity Center with an external identity provider then the nimbus dashboard will no longer be necessary since we would be managing identities with another provider. The dashboard for this project basically just handles onboarding and offboarding for aws users. If we had an external identity provider it would be unnecessary. The security policies that we use to enforce MFA and default deny access without it would need to remain in order to ensure best practices. The alerts would also need to stay for the same reason. Drift detection and the killswitch would also need to remain in order to make sure that users that are offboarded do not maintain access. There are a couple of risks with using an external provider, but the main one would be the fact that we would be relying on a third party that could be compromised. We can secure our own code and our own identity management applications but we have no control over how secure the third party provider is.
+If the company were to adopt AWS IAM Identity Center with an external identity provider then the nimbus dashboard will no longer be necessary since we would be managing identities with another provider. The dashboard for this project basically just handles onboarding and offboarding for aws users. If we had an external identity provider it would be unnecessary. The security policies that we use to enforce MFA and default deny access without it would need to remain in order to ensure best practices. The alerts would also need to stay for the same reason. Drift detection and the killswitch would also need to remain in order to make sure that users that are offboarded do not maintain access. There are a couple of risks with using an external provider, but the main one would be the fact that we would be relying on a third party that could be compromised. We can secure our own code and our own identity management applications but we'd have no control over how secure the third party providers infrastructure is.
 
 ## Q19 Why is a token rotation safe with no restart, and what would break if the services accepted only the current token?
 
@@ -225,7 +225,7 @@ Here is the completion for **Q22**, breaking down the first limit hit and the re
 | **Permissions** | IAM user group limits or account user ceilings. | Switch from manually controlled IAM identities to a federated identity provider |
 | **Registry (S3)** | S3 API performance and latency bottlenecks when listing thousands of objects on a refresh/reload. | Implement a database to store this information instead of relying exclusively on S3 |
 | **Dashboard** | AWS IAM API rate limits and throttling. | Use IAM Credential Report and/or batched synchronization to mitigate API limits. |
-| **Service Identity** | Container compromise (all containers are on the same host, so if one gets compromised then all of them are compromised | Use seperate EC2 instances for each service or implement ECS tasks. |
+| **Service Identity** | Container compromise (all containers are on the same host, so if one gets compromised then all of them are compromised.) | Use seperate EC2 instances for each service or implement ECS tasks. |
 | **Sign In** | A large organization has multiple administrators, so there should be multiple admin accounts instead of a shared one | Use SSO to avoid making IAM users manually, and stop sharing one admin account. |
 | **Logging** | CloudTrail stortage and retention limits might be an issue with a large organization | Send logs to a seperate logging account and implement a SIEM system to help manage analyze events. |
 
@@ -331,6 +331,20 @@ Object Lock and MFA delete would change the answer.
 Digest files help prove the validity and integrity of the logs that were generated because they are hashed and chained together. The digest files prove that the logs are legitimate. The aws cloudtrail validate-logs command computes the hashes and verifies all of the signatures. I would use this command to check whether my logs are legitimate. An attacker with admin rights could potentially modify or even delete these logs because they are stored in an s3 bucket, so if the administrative account can modify s3 then the attacker could completely wipe the logs. Seperate logging accounts, s3 object lock, and MFA can help protect against this because they act as addional guardrails to a compromised administrator account. If the logs are in a seperate account then the attacker can't delete them because the compromised admin account doesn't have the permissions to access the logging accounts resources. An object lock can prevent objects in a bucket from being deleted because it overules an accounts permissions when it comes to deleting objects. Multifactor authentication helps defend the logs because it requires an additional form of authentication when logging in. This means that if an attacker has an administrators credentials they still will not be able to login and perfrom any actions. S3 buckets can also be configured to require multifactor authentication when trying to delete data.
 
 Sources
+
+https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html
+
+https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
+
+https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html
+
+https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html
+
+https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html
+
+https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html
+
+https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers.html
 
 https://attack.mitre.org/matrices/enterprise/cloud/
 
